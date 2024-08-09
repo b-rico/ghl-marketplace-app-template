@@ -1,37 +1,76 @@
-/*you provided is a TypeScript code that sets up an Express server and defines several routes
-for handling HTTP requests. */
 import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import { GHL } from "./ghl";
-import * as CryptoJS from 'crypto-js'
+import * as CryptoJS from 'crypto-js';
 import { json } from "body-parser";
 
 const path = __dirname + "/ui/dist/";
 
 dotenv.config();
 const app: Express = express();
-app.use(json({ type: 'application/json' }))
+app.use(json({ type: 'application/json' }));
 
-/*`app.use(express.static(path));` is setting up a middleware in the Express server. The
-`express.static` middleware is used to serve static files such as HTML, CSS, JavaScript, and images. */
-app.use(express.static(path));
+// Interface for TokenData
+interface TokenData {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  token_type: string;
+  scope: string;
+  userType: string;
+  companyId: string;
+  locationId: string;
+  userId: string;
+}
 
-/* The line `const ghl = new GHL();` is creating a new instance of the `GHL` class. It is assigning
-this instance to the variable `ghl`. This allows you to use the methods and properties defined in
-the `GHL` class to interact with the GoHighLevel API. */
+// Initialize the GHL class
 const ghl = new GHL();
-
 const port = process.env.PORT;
 
-/*`app.get("/authorize-handler", async (req: Request, res: Response) => { ... })` sets up an example how you can authorization requests */
-app.get("/authorize-handler", async (req: Request, res: Response) => {
-  const { code } = req.query;
-  await ghl.authorizationHandler(code as string);
-  res.redirect("https://app.gohighlevel.com/");
+// Token store to keep tokens keyed by locationId
+const tokenStore: { [key: string]: TokenData } = {}; // Simple in-memory store
+
+// Route to start the OAuth flow
+app.get("/start-auth", (req: Request, res: Response) => {
+  const scopes = "contacts.readonly contacts.write users.readonly";
+  console.log("Scopes:", scopes);
+  const authUrl = `https://marketplace.leadconnectorhq.com/oauth/chooselocation?response_type=code&redirect_uri=${encodeURIComponent('http://localhost:3000/authorize-handler')}&client_id=${process.env.GHL_APP_CLIENT_ID}&scope=${encodeURIComponent(scopes)}`;
+  res.redirect(authUrl);
 });
 
-/*`app.get("/example-api-call", async (req: Request, res: Response) => { ... })` shows you how you can use ghl object to make get requests
- ghl object in abstract would handle all of the authorization part over here. */
+// Route to handle the authorization callback and store tokens
+app.get("/authorize-handler", async (req: Request, res: Response) => {
+  const { code } = req.query;
+
+  if (!code) {
+    console.error("Authorization code is missing");
+    return res.status(400).send("Authorization code is missing");
+  }
+
+  try {
+    // Handle the authorization process and retrieve token data
+    const tokenData = await ghl.authorizationHandler(code as string);
+
+    // Debug output
+    console.log("Authorization Code:", code);
+    console.log("Token Data:", tokenData);
+
+    // Store the token data using locationId as the key
+    tokenStore[tokenData.locationId] = tokenData;
+
+    // Respond with the authorization details
+    res.status(200).json({
+      message: "Authorization successful",
+      authorizationCode: code,
+      ...tokenData, // Spread the token data in the response
+    });
+  } catch (error) {
+    console.error("Error handling authorization:", error);
+    res.status(500).send("Error during authorization");
+  }
+});
+
+// Route to make an example API call using the company ID
 app.get("/example-api-call", async (req: Request, res: Response) => {
   if (ghl.checkInstallationExists(req.query.companyId as string)) {
     try {
@@ -47,87 +86,69 @@ app.get("/example-api-call", async (req: Request, res: Response) => {
       console.log(error);
     }
   }
-  return res.send("Installation for this company does not exists");
+  return res.send("Installation for this company does not exist");
 });
 
-/*`app.get("/example-api-call-location", async (req: Request, res: Response) => { ... })` shows you how you can use ghl object to make get requests
- ghl object in abstract would handle all of the authorization part over here. */
+// Route to make an example API call using the location ID
 app.get("/example-api-call-location", async (req: Request, res: Response) => {
-  /* The line `if(ghl.checkInstallationExists(req.params.locationId)){` is checking if an
-    installation already exists for a specific location. It calls the `checkInstallationExists`
-    method of the `GHL` class and passes the `locationId` as a parameter. This method checks if
-    there is an existing installation for the provided locationId and returns a boolean value
-    indicating whether the installation exists or not. */
   try {
-    if (ghl.checkInstallationExists(req.params.locationId)) {
-      const request = await ghl
-        .requests(req.query.locationId as string)
-        .get(`/contacts/?locationId=${req.query.locationId}`, {
-          headers: {
-            Version: "2021-07-28",
-          },
-        });
-      return res.send(request.data);
-    } else {
-      /* NOTE: This flow would only work if you have a distribution type of both Location & Company & OAuth read-write scopes are configured. 
-        The line `await ghl.getLocationTokenFromCompanyToken(req.query.companyId as string, req.query.locationId as string)`
-         is calling the `getLocationTokenFromCompanyToken` method of the
-        `GHL` class. This method is used to retrieve the location token for a specific location within a company. */
-      await ghl.getLocationTokenFromCompanyToken(
-        req.query.companyId as string,
-        req.query.locationId as string
-      );
-      const request = await ghl
-        .requests(req.query.locationId as string)
-        .get(`/contacts/?locationId=${req.query.locationId}`, {
-          headers: {
-            Version: "2021-07-28",
-          },
-        });
-      return res.send(request.data);
+    const { companyId, locationId } = req.query;
+
+    if (!companyId || !locationId) {
+      return res.status(400).send("companyId and locationId are required");
     }
+
+    // Retrieve token data from the store
+    const tokenData = tokenStore[locationId as string];
+    if (!tokenData || !tokenData.access_token) {
+      return res.status(400).send("No stored token found for this location");
+    }
+
+    // Make the API request using the stored token
+    const request = await ghl
+      .requests(locationId as string)
+      .get(`/contacts/?locationId=${locationId}`, {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+          Version: "2021-07-28",
+        },
+      });
+
+    console.log("API Response:", request.data);
+    return res.send(request.data);
   } catch (error) {
-    console.log(error);
-    res.send(error).status(400)
+    console.error("Error fetching contacts:", error);
+    return res.status(500).send("An error occurred while fetching contacts");
   }
 });
 
-/*`app.post("example-webhook-handler",async (req: Request, res: Response) => {
-    console.log(req.body)
-})` sets up a route for handling HTTP POST requests to the "/example-webhook-handler" endpoint. The below POST
-api can be used to subscribe to various webhook events configured for the app. */
-app.post("/example-webhook-handler",async (req: Request, res: Response) => {
-    console.log(req.body)
-})
+// Route to handle webhook events
+app.post("/example-webhook-handler", async (req: Request, res: Response) => {
+  console.log(req.body);
+  res.status(200).send("Webhook received");
+});
 
-
-/* The `app.post("/decrypt-sso",async (req: Request, res: Response) => { ... })` route is used to
-decrypt session details using ssoKey. */
-app.post("/decrypt-sso",async (req: Request, res: Response) => {
-  const {key} = req.body || {}
-  if(!key){
-    return res.status(400).send("Please send valid key")
+// Route to decrypt SSO data
+app.post("/decrypt-sso", async (req: Request, res: Response) => {
+  const { key } = req.body || {};
+  if (!key) {
+    return res.status(400).send("Please send a valid key");
   }
   try {
-    const data = ghl.decryptSSOData(key)
-    res.send(data)
+    const data = ghl.decryptSSOData(key);
+    res.send(data);
   } catch (error) {
-    res.status(400).send("Invalid Key")
-    console.log(error)  
+    res.status(400).send("Invalid Key");
+    console.error(error);
   }
-})
+});
 
-/*`app.get("/", function (req, res) {
-  res.sendFile(path + "index.html");
-});` sets up a route for the root URL ("/") of the server.  This is
- used to serve the main HTML file of a web application. */
+// Serve the main HTML file
 app.get("/", function (req, res) {
   res.sendFile(path + "index.html");
 });
 
-/*`app.listen(port, () => {
-  console.log(`GHL app listening on port `);
-});` is starting the Express server and making it listen on the specified port. */
+// Start the Express server
 app.listen(port, () => {
   console.log(`GHL app listening on port ${port}`);
 });
