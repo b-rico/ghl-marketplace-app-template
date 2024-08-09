@@ -9,15 +9,18 @@ const ghl = new GHL();
 
 export async function createTaskInGHL(task: any, clientId: string, tokenStore: any) {
   try {
-    const response = await ghl.requests(clientId).post('/tasks', {
-      ...task,
-    }, {
-      headers: {
-        Authorization: `Bearer ${tokenStore[clientId].access_token}`,
-        Version: '2021-07-28',
-      },
+    // Apply rate limiting with pLimit
+    await limit(async () => {
+      const response = await ghl.requests(clientId).post('/tasks', {
+        ...task,
+      }, {
+        headers: {
+          Authorization: `Bearer ${tokenStore[clientId].access_token}`,
+          Version: '2021-07-28',
+        },
+      });
+      console.log('Task created:', response.data);
     });
-    console.log('Task created:', response.data);
   } catch (error) {
     console.error('Error creating task:', error);
   }
@@ -25,15 +28,18 @@ export async function createTaskInGHL(task: any, clientId: string, tokenStore: a
 
 export async function createNoteInGHL(note: any, clientId: string, tokenStore: any) {
   try {
-    const response = await ghl.requests(clientId).post('/notes', {
-      ...note,
-    }, {
-      headers: {
-        Authorization: `Bearer ${tokenStore[clientId].access_token}`,
-        Version: '2021-07-28',
-      },
+    // Apply rate limiting with pLimit
+    await limit(async () => {
+      const response = await ghl.requests(clientId).post('/notes', {
+        ...note,
+      }, {
+        headers: {
+          Authorization: `Bearer ${tokenStore[clientId].access_token}`,
+          Version: '2021-07-28',
+        },
+      });
+      console.log('Note created:', response.data);
     });
-    console.log('Note created:', response.data);
   } catch (error) {
     console.error('Error creating note:', error);
   }

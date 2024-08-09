@@ -1,5 +1,6 @@
 import qs from "qs";
 import axios, { AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
+import CryptoJS from "crypto-js";
 
 import { Model, TokenType } from "./model";
 
@@ -28,9 +29,9 @@ export class GHL {
     await this.generateAccessTokenRefreshTokenPair(code);
   }
 
-  decryptSSOData(key: string){
-    const data = CryptoJS.AES.decrypt(key, process.env.GHL_APP_SSO_KEY as string).toString(CryptoJS.enc.Utf8)
-    return JSON.parse(data)
+  decryptSSOData(key: string): any {
+    const data = CryptoJS.AES.decrypt(key, process.env.GHL_APP_SSO_KEY as string).toString(CryptoJS.enc.Utf8);
+    return JSON.parse(data);
   }
 
 /**
@@ -54,9 +55,7 @@ export class GHL {
     axiosInstance.interceptors.request.use(
       async (requestConfig: InternalAxiosRequestConfig) => {
         try {
-          requestConfig.headers["Authorization"] = `${
-            TokenType.Bearer
-          } ${this.model.getAccessToken(resourceId)}`;
+          requestConfig.headers["Authorization"] = `${TokenType.Bearer} ${this.model.getAccessToken(resourceId)}`;
         } catch (e) {
           console.error(e);
         }
@@ -72,9 +71,7 @@ export class GHL {
         if (error.response.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
           return this.refreshAccessToken(resourceId).then(() => {
-            originalRequest.headers.Authorization = `Bearer ${this.model.getAccessToken(
-              resourceId
-            )}`;
+            originalRequest.headers.Authorization = `Bearer ${this.model.getAccessToken(resourceId)}`;
             return axios(originalRequest);
           });
         }
@@ -92,8 +89,8 @@ export class GHL {
  * resource.
  * @returns a boolean value.
  */
-  checkInstallationExists(resourceId: string){
-    return !!this.model.getAccessToken(resourceId)
+  checkInstallationExists(resourceId: string): boolean {
+    return !!this.model.getAccessToken(resourceId);
   }
 
 /**

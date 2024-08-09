@@ -4,11 +4,14 @@
   "description": "Using this to integrate GHL with Google Cloud SQL",
   "main": "src/index.ts",
   "scripts": {
-    "build": "npx tsc && npm run build-ui && mkdir -p ./dist/ui/dist && cp -r ./src/ui/dist ./dist/ui",
+    "build": "tsc",
     "build-ui": "cd src/ui && npm i && npm run build && cd ../../",
-    "start": "node dist/index.js",
-    "dev": "npm run build-ui && ts-node-dev src/index.ts"
+    "create-dist-dir": "npx shx mkdir -p dist/ui/dist",
+    "copy-ui": "npx shx cp -r src/ui/dist dist/ui",
+    "start": "npm run build-ui && npm run build && npm run create-dist-dir && npm run copy-ui && node dist/index.js",
+    "dev": "npm run build-ui && npm run build && npm run create-dist-dir && npm run copy-ui && ts-node src/index.ts"
   },
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/b-rico/ghl-marketplace-app-template"
@@ -27,16 +30,21 @@
     "axios": "^1.5.1",
     "body-parser": "^1.20.2",
     "crypto-js": "^4.1.1",
-    "dotenv": "^16.3.1",
+    "dotenv": "^16.4.5",
     "express": "^4.18.2",
     "mysql2": "^3.11.0",
     "p-limit": "^6.1.0",
     "vue": "^3.3.4"
   },
   "devDependencies": {
+    "@types/axios": "^0.14.0",
     "@types/crypto-js": "^4.1.2",
+    "@types/dotenv": "^8.2.0",
     "@types/express": "^4.17.18",
     "@types/node": "^20.8.2",
+    "@types/p-limit": "^2.2.0",
+    "shx": "^0.3.4",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.2.2"
   }
