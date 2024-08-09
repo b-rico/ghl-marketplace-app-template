@@ -4,20 +4,17 @@ import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import { processTasksAndNotes, tokenStore } from "./tasks-and-notes";
 import { GHL } from "./ghl";
-<<<<<<< HEAD
 import { TokenData } from "./types"; // Import the TokenData interface
-import path from "path";
-=======
+import pathModule from "path";
 import * as CryptoJS from 'crypto-js'
 import { json } from "body-parser";
 
 const path = __dirname + "/ui/dist/";
->>>>>>> parent of 47ad35a (updated index.ts)
 
 dotenv.config();
 
 const app: Express = express();
-<<<<<<< HEAD
+// Remove the merge conflict marker
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
@@ -73,7 +70,7 @@ app.get("/run-process", async (req: Request, res: Response) => {
   await processTasksAndNotes();
   res.send("Processing complete");
 });
-=======
+// Remove the merge conflict marker
 app.use(json({ type: 'application/json' }))
 
 /*`app.use(express.static(path));` is setting up a middleware in the Express server. The
@@ -85,7 +82,8 @@ this instance to the variable `ghl`. This allows you to use the methods and prop
 the `GHL` class to interact with the GoHighLevel API. */
 const ghl = new GHL();
 
-const port = process.env.PORT;
+// Remove the duplicate declaration of 'port' variable
+// const port = process.env.PORT;
 
 /*`app.get("/authorize-handler", async (req: Request, res: Response) => { ... })` sets up an example how you can authorization requests */
 app.get("/authorize-handler", async (req: Request, res: Response) => {
@@ -180,7 +178,7 @@ app.post("/decrypt-sso",async (req: Request, res: Response) => {
     console.log(error)  
   }
 })
->>>>>>> parent of 47ad35a (updated index.ts)
+// Remove the merge conflict marker
 
 /*`app.get("/", function (req, res) {
   res.sendFile(path + "index.html");
