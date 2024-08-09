@@ -49,16 +49,19 @@ app.get("/authorize-handler", async (req: Request, res: Response) => {
 
   try {
     // Handle the authorization process and retrieve token data
-    const tokenData = await ghl.authorizationHandler(code as string);
+    const tokenData = await ghl.authorizationHandler(code as string) as unknown as TokenData;  // Explicitly assert the type
 
-    // Debug output
     console.log("Authorization Code:", code);
     console.log("Token Data:", tokenData);
 
     // Store the token data using locationId as the key
-    tokenStore[tokenData.locationId] = tokenData;
+    if (tokenData && tokenData.locationId) {
+      tokenStore[tokenData.locationId] = tokenData;
+    } else {
+      throw new Error("locationId is missing in token data");
+    }
 
-    // Respond with the authorization details
+    // Respond with all the relevant data
     res.status(200).json({
       message: "Authorization successful",
       authorizationCode: code,

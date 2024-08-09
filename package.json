@@ -1,7 +1,7 @@
 {
-  "name": "ghl-marketplace-app-template",
+  "name": "google-cloud-integration",
   "version": "1.0.0",
-  "description": "A boilerplate for creating GHL marketplace apps",
+  "description": "Using this to integrate GHL with Google Cloud SQL",
   "main": "src/index.ts",
   "scripts": {
     "build": "npx tsc && npm run build-ui && mkdir -p ./dist/ui/dist && cp -r ./src/ui/dist ./dist/ui",
@@ -11,24 +11,25 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/GoHighLevel/ghl-marketplace-app-template.git"
+    "url": "git+https://github.com/b-rico/ghl-marketplace-app-template"
   },
   "keywords": [
     "boilerplate",
     "ghl"
   ],
-  "author": "GHL",
-  "license": "ISC",
+  "author": "ByteWise Analytics, LLC",
+  "license": "",
   "bugs": {
     "url": "https://github.com/GoHighLevel/ghl-marketplace-app-template/issues"
   },
-  "homepage": "https://github.com/GoHighLevel/ghl-marketplace-app-template#readme",
+  "homepage": "https://github.com/b-rico/ghl-marketplace-app-template#readme",
   "dependencies": {
     "axios": "^1.5.1",
     "body-parser": "^1.20.2",
     "crypto-js": "^4.1.1",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "mysql2": "^3.11.0",
     "vue": "^3.3.4"
   },
   "devDependencies": {
